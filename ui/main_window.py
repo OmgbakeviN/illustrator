@@ -1,14 +1,12 @@
 """
-Fenêtre principale.
-- Barre de menus : Fichier (Nouveau/Ouvrir/Enregistrer), Édition (Undo/Redo), Vue (2D/3D).
-- Onglets : pour l'instant un onglet 2D, un placeholder 3D viendra plus tard.
-- Gère un Document en mémoire et passe la référence au Canvas2D.
+Fenêtre principale complète (Menus + Toolbar + Zoom)
+Étape 2 finalisée.
 """
 
 from PyQt6.QtWidgets import (
-    QMainWindow, QFileDialog, QTabWidget, QWidget, QVBoxLayout, QMessageBox
+    QMainWindow, QFileDialog, QTabWidget, QMessageBox, QToolBar
 )
-from PyQt6.QtGui import QIcon, QKeySequence
+from PyQt6.QtGui import QKeySequence, QAction
 from PyQt6.QtCore import Qt
 
 from core.document import Document
@@ -16,37 +14,35 @@ from core.io_json import save_document, load_document
 from core.commands import CommandStack
 from ui.init_2d import Canvas2D
 
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Mini-Illustrator")
         self.resize(1280, 800)
 
-        # --- Modèle & pile de commandes ---
+        # Modèle
         self.doc = Document()
         self.commands = CommandStack()
 
-        # --- Zone centrale : onglets (2D / 3D plus tard) ---
+        # Canvas 2D
         self.tabs = QTabWidget()
         self.canvas2d = Canvas2D(self.doc, self)
         self.tabs.addTab(self.canvas2d, "2D")
-
-        # Placeholder 3D désactivé pour le moment (à l'étape 6)
-        # self.canvas3d = Canvas3D(self.doc, self)
-        # self.tabs.addTab(self.canvas3d, "3D")
-
         self.setCentralWidget(self.tabs)
 
-        # Barre de statut (texte en bas)
+        # Barre de statut
         self.statusBar().showMessage("Prêt")
 
-        # Construire les menus et leurs actions
+        # Menus et Toolbar
         self._build_menus()
+        self._build_toolbar()
 
-        # Mettre à jour l'état des actions Undo/Redo (désactivées au départ)
         self._refresh_edit_actions()
 
-    # ----------------- Menus -----------------
+    # ------------------------------------------------------------------
+    # MENU FICHIER / ÉDITION / VUE
+    # ------------------------------------------------------------------
     def _build_menus(self):
         # --- MENU FICHIER ---
         m_file = self.menuBar().addMenu("&Fichier")
@@ -81,24 +77,58 @@ class MainWindow(QMainWindow):
         # --- MENU VUE ---
         m_view = self.menuBar().addMenu("&Vue")
 
-        # Pour l’instant, simple placeholder pour basculer 2D/3D
-        # On activera l’onglet 3D quand il existera.
         a_go_2d = m_view.addAction("Basculer vers 2D")
         a_go_2d.triggered.connect(lambda: self.tabs.setCurrentIndex(0))
 
-        # Exemple si l’onglet 3D était présent :
-        # a_go_3d = m_view.addAction("Basculer vers 3D")
-        # a_go_3d.triggered.connect(lambda: self.tabs.setCurrentIndex(1))
+    # ------------------------------------------------------------------
+    # TOOLBAR (Étape 2)
+    # ------------------------------------------------------------------
+    def _build_toolbar(self):
+        tb = QToolBar("Outils", self)
+        tb.setMovable(False)
+        self.addToolBar(Qt.ToolBarArea.TopToolBarArea, tb)
 
-    # ----------------- Actions Fichier -----------------
+        act_select = QAction("Select", self)
+        act_select.triggered.connect(lambda: self.canvas2d.set_tool("select"))
+
+        act_rect = QAction("Rect", self)
+        act_rect.triggered.connect(lambda: self.canvas2d.set_tool("rect"))
+
+        act_ellipse = QAction("Ellipse", self)
+        act_ellipse.triggered.connect(lambda: self.canvas2d.set_tool("ellipse"))
+
+        act_line = QAction("Ligne", self)
+        act_line.triggered.connect(lambda: self.canvas2d.set_tool("line"))
+
+        tb.addAction(act_select)
+        tb.addAction(act_rect)
+        tb.addAction(act_ellipse)
+        tb.addAction(act_line)
+        tb.addSeparator()
+
+        act_zoom_in = QAction("Zoom +", self)
+        act_zoom_in.setShortcut(QKeySequence.StandardKey.ZoomIn)
+        act_zoom_out = QAction("Zoom -", self)
+        act_zoom_out.setShortcut(QKeySequence.StandardKey.ZoomOut)
+        act_zoom_reset = QAction("Reset", self)
+
+        act_zoom_in.triggered.connect(self.canvas2d.zoom_in)
+        act_zoom_out.triggered.connect(self.canvas2d.zoom_out)
+        act_zoom_reset.triggered.connect(self.canvas2d.zoom_reset)
+
+        tb.addAction(act_zoom_in)
+        tb.addAction(act_zoom_out)
+        tb.addAction(act_zoom_reset)
+
+    # ------------------------------------------------------------------
+    # LOGIQUE FICHIER
+    # ------------------------------------------------------------------
     def on_new(self):
-        """Réinitialise le document courant et rafraîchit le canvas."""
         self.doc.clear()
         self.canvas2d.set_document(self.doc)
         self.statusBar().showMessage("Nouveau document")
 
     def on_open(self):
-        """Ouvre un .json et remplace le document courant."""
         path, _ = QFileDialog.getOpenFileName(
             self, "Ouvrir", filter="Projet Mini-Illustrator (*.json)"
         )
@@ -112,13 +142,9 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Erreur d'ouverture", str(e))
 
     def on_save(self):
-        """Sauvegarde rapide : si pas de chemin connu, bascule sur 'Enregistrer sous'."""
-        # À l'étape 0, on ne garde pas encore l'état du 'dernier chemin'.
-        # On passe donc systématiquement par 'Enregistrer sous'.
-        self.on_save_as()
+        self.on_save_as()  # version simplifiée
 
     def on_save_as(self):
-        """Demande un chemin et sauvegarde le document JSON."""
         path, _ = QFileDialog.getSaveFileName(
             self, "Enregistrer sous", filter="Projet Mini-Illustrator (*.json)"
         )
@@ -130,9 +156,10 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Erreur d'enregistrement", str(e))
 
-    # ----------------- Actions Édition -----------------
+    # ------------------------------------------------------------------
+    # ANNULER / RÉTABLIR
+    # ------------------------------------------------------------------
     def _refresh_edit_actions(self):
-        """Active/désactive Undo/Redo selon l'état de la pile."""
         self.a_undo.setEnabled(self.commands.can_undo())
         self.a_redo.setEnabled(self.commands.can_redo())
 

@@ -2,5 +2,56 @@
   "title": "Sans titre",
   "width": 1200,
   "height": 800,
-  "shapes": []
+  "shapes": [
+    {
+      "type": "rect",
+      "x": 37.0,
+      "y": 64.0,
+      "w": 295.0,
+      "h": 232.0,
+      "stroke_color": "#000000",
+      "fill_color": "#FFFFFF",
+      "stroke_width": 2
+    },
+    {
+      "type": "ellipse",
+      "x": 282.0,
+      "y": 103.0,
+      "w": 243.0,
+      "h": 306.0,
+      "stroke_color": "#000000",
+      "fill_color": "#FFFFFF",
+      "stroke_width": 2
+    },
+    {
+      "type": "ellipse",
+      "x": 233.0,
+      "y": 194.0,
+      "w": 351.0,
+      "h": 11.0,
+      "stroke_color": "#000000",
+      "fill_color": "#FFFFFF",
+      "stroke_width": 2
+    },
+    {
+      "type": "rect",
+      "x": 174.0,
+      "y": 88.0,
+      "w": 313.0,
+      "h": 184.0,
+      "stroke_color": "#000000",
+      "fill_color": "#FFFFFF",
+      "stroke_width": 2
+    },
+    {
+      "type": "rect",
+      "x": 161.0,
+      "y": 149.0,
+      "w": 370.0,
+      "h": 162.0,
+      "stroke_color": "#000000",
+      "fill_color": "#FFFFFF",
+      "stroke_width": 2
+    }
+  ]
 }
